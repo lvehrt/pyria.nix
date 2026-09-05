@@ -1,7 +1,7 @@
 { config, lib, ... }:
 {
   security.audit.enable = config.pyria.security.audit.enable;
-  security.audit.rules = config.pyria.security.audit.extraRules ++ lib.mkIf config.pyria.security.audit.enable [
+  security.audit.rules = config.pyria.security.audit.extraRules ++ lib.optionals config.pyria.security.audit.enable [
     "-a exit,always -F arch=b64 -S execve"
     "-w /etc/passwd -p wa"
     "-w /etc/shadow -p wa"

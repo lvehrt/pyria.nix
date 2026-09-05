@@ -77,7 +77,10 @@ let
     "net.ipv4.conf.default.send_redirects" = 0;
     "net.ipv4.conf.default.log_martians" = 1;   
     "net.ipv6.conf.default.accept_redirects" = 0;
-    "net.ipv6.conf.default.use_tempaddr" = 2;
+    # net.ipv6.conf.default.use_tempaddr is NOT set here: nixpkgs defines it
+    # at normal priority from networking.tempAddresses
+    # (tasks/network-interfaces.nix), so setting it directly is a duplicate
+    # definition error. It's driven via that option below instead.
     "net.ipv6.conf.default.accept_ra" = 0;
     "net.ipv6.conf.all.accept_ra" = 0;
     "net.ipv4.conf.all.secure_redirects" = 0;
@@ -123,6 +126,11 @@ let
 in {
   boot.kernelParams = lib.mkIf config.pyria.kernel.enable kernelParams;
   boot.kernel.sysctl = lib.mkIf config.pyria.kernel.enable sysctl;
+
+  # IPv6 privacy extensions. "default" is the enum value that maps to
+  # use_tempaddr = 2 (generate temporary addresses AND prefer them as source);
+  # "enabled" is only 1, which generates but does not prefer them.
+  networking.tempAddresses = lib.mkIf config.pyria.kernel.enable (lib.mkDefault "default");
   boot.blacklistedKernelModules = lib.mkIf config.pyria.kernel.enable  [
     "dccp" "sctp" "rds" "tipc"
     "n-hdlc" "ax25" "netrom" "x25"
