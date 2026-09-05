@@ -31,6 +31,15 @@ long way with what we have, but there's a long way to go and a lot of code
 that's yet to be written. keep checking for updates, i'm sure more will come
 soon.
 
+## what's available now?
+
+### nixos module: `pyria`
+
+this is pyria's base module, this is what you want to use to build secure
+systems and what most people will use the most. this serves as page 1 and 2 of
+the hardening documentation found below.
+
+
 # `pyria` hardening documentation
 
 ## page 1: hardening the kernel
@@ -211,3 +220,6 @@ compatible with firejail profiles, enforced at the kernel level, and it pairs
 more than well with apparmor, IMA, and fs-verity.
 
 it's currently in the works, you can check back soon to see progress!
+
+## page 3: hardening the boot process and securing data at rest.
+

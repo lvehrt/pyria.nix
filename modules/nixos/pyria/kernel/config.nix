@@ -1,8 +1,7 @@
-{ config, lib, pkgs, ... }:
+{ config, lib, ... }:
 
-let 
-kernelParams = pkgs.callPackage ({ ... }: 
-  let kernelParams = [
+let
+  kernelParams = [
     # memory hardening
     "init_on_alloc=1"
     "init_on_free=1"
@@ -38,23 +37,21 @@ kernelParams = pkgs.callPackage ({ ... }:
     "ima_appraise=enforce"
     "ima_appraise_tcb"
     "ima_hash=sha256"
-  ];
-  unhardenedParams = [] ++ lib.mkIf (config.pyria.kernel.config != "fortress") [
-    "mds=full"    
+  ]
+  ++ lib.optionals (config.pyria.kernel.config != "fortress") [
+    "mds=full"
     "slab_debug=ZP"
-  ];
-  hardenedParams = [] ++ lib.mkIf (config.pyria.kernel.config == "fortress") [
+  ]
+  ++ lib.optionals (config.pyria.kernel.config == "fortress") [
     "slab_debug=FZP"
     "mds=full,nosmt"
     "l1tf=full,nosmt"
     "nosmt"
-  ];
-  apparmorParams = [] ++ lib.mkIf (config.pyria.security.apparmor.enable) [
+  ]
+  ++ lib.optionals config.pyria.security.apparmor.enable [
     "apparmor=1"
   ];
-  in kernelParams ++ unhardenedParams ++ hardenedParams ++ apparmorParams);
-sysctl = pkgs.callPackage ({ ... }:
-  let commonConfig = {
+  commonConfig = {
     "kernel.kptr_restrict" = 2;
     "kernel.dmesg_restrict" = 1;
     "kernel.randomize_va_space" = 2;
@@ -63,7 +60,9 @@ sysctl = pkgs.callPackage ({ ... }:
     "kernel.printk" = "3 3 3 3";
     "kernel.sysrq" = 4;
     "kernel.unprivileged_userns_clone" = 0;
-    "kernel.io_uring" = 1;
+    # 1 = io_uring restricted to CAP_SYS_ADMIN / io_uring_group members.
+    # ("kernel.io_uring" is not a real sysctl; io_uring_disabled is the knob.)
+    "kernel.io_uring_disabled" = 1;
     "kernel.perf_event_paranoid" = 3;
     "kernel.yama.ptrace_scope" = 1;
     "kernel.unprivileged_bpf_disabled" = 1;
@@ -102,11 +101,7 @@ sysctl = pkgs.callPackage ({ ... }:
     "vm.swappiness" = 1;
     "dev.tty.ldisc_autoload" = 0;
   };
-  hardenedConfig = {} // lib.mkIf (config.pyria.kernel.config == "fortress") {
-    "kernel.yama.ptrace_scope" = 3;
-    "kernel.unprivileged_bpf_disabled" = 1;
-  };
-  apparmorConfig = {} // lib.mkIf (config.pyria.security.apparmor.enable) {
+  apparmorConfig = lib.optionalAttrs config.pyria.security.apparmor.enable {
     # userns enabled at kernel level but apparmor gates per-application.
     # unprivileged_userns_clone=1 allows creation,
     # apparmor_restrict_unprivileged_userns=1 requires an apparmor profile
@@ -116,8 +111,15 @@ sysctl = pkgs.callPackage ({ ... }:
     "kernel.apparmor_restrict_unprivileged_userns" = 1;
     "kernel.apparmor_restrict_unprivileged_unconfined" = 1;
   };
-  in commonConfig // hardenedConfig // apparmorConfig);
-  
+  # fortress merges last: its "no exceptions" overrides win over the
+  # apparmor-gated userns/ptrace settings.
+  fortressConfig = lib.optionalAttrs (config.pyria.kernel.config == "fortress") {
+    "kernel.yama.ptrace_scope" = 3;
+    "kernel.unprivileged_userns_clone" = 0;
+  };
+  sysctl = commonConfig // apparmorConfig // fortressConfig;
+
+
 in {
   boot.kernelParams = lib.mkIf config.pyria.kernel.enable kernelParams;
   boot.kernel.sysctl = lib.mkIf config.pyria.kernel.enable sysctl;

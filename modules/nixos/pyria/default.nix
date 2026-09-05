@@ -1,6 +1,6 @@
 { inputs, apparmor-nix, ... }:
 {
-  inputs.nixpkgs.overlays = [
+  nixpkgs.overlays = [
     apparmor-nix.overlays.default
   ];
   imports = [

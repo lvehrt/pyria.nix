@@ -2,7 +2,7 @@
 let 
   linuxHardened = { fetchFromGitHub, buildLinux, lib, ... } @ args:
       buildLinux (args // rec {
-        version = "6.19.10-hardened1";
+        version = "7.2-hardened1";
         hash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="; # placeholder!
         extraMeta.branch = "6.19";
 
@@ -94,5 +94,5 @@ let
     "hardened" = linuxHardened;
   };
 in {
-  boot.kernelPackages = lib.mkIf config.pyria.kernel.enable pkgs.callPackage pkgMap."${config.pyria.kernel.flavor}" {};
+  boot.kernelPackages = lib.mkIf config.pyria.kernel.enable (pkgs.callPackage pkgMap."${config.pyria.kernel.flavor}" {});
 }
